@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Option Chain</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #fff;
+            font-size: 12px;
+        }
+
+        /* --- CONTROL PANEL --- */
+        .control-panel {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            background: #fafafa;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-radius: 6px;
+        }
+
+        .control-panel label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .control-panel input, .control-panel button {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .control-panel button {
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+        
+        .control-panel button:hover {
+            background: #2980b9;
+        }
+
+        /* --- HEADER INFO STYLE --- */
+        .header-info {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .header-info .label {
+            font-weight: 700;
+            color: #34495e;
+        }
+
+        /* Added IDs for dynamic updating */
+        .header-info .value {
+            font-weight: 700;
+            color: #000;
+            margin-left: 5px;
+        }
+
+        /* --- TABLE STYLE (unchanged) --- */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+        th, td { padding: 4px 8px; border: 1px solid #e0e0e0; text-align: right; }
+        
+        thead tr:first-child th { text-align: center; font-weight: bold; padding: 8px; border-bottom: 2px solid #ccc; }
+        thead tr:nth-child(2) th { font-weight: 600; background-color: #f9f9f9; color: #333; font-size: 11px; }
+        
+        .calls-header { background-color: #e3f2fd !important; color: #000; }
+        .puts-header { background-color: #fff59d !important; color: #000; }
+        .strike-header { background-color: #eeeeee !important; }
+        .strike-col { background-color: #f5f5f5; font-weight: bold; text-align: center; color: #000; }
+        .bg-call { background-color: #fdfdfe; }
+        tbody tr:hover { background-color: #f0f0f0; }
+        .pos { color: green; }
+        .neg { color: red; }
+    </style>
+
+    <script>
+        // Use Flask template variables to set initial state
+        let currentSymbol = "{{ stock_name }}";
+        let currentExpiry = "{{ expiry }}";
+        
+        function fmt(val, isPrice = true) {
+            if (val === null || val === undefined || val === "") return "-";
+            let num = parseFloat(val);
+            if (isNaN(num)) return "-";
+            if (num === 0) return "0";
+            return isPrice ? num.toFixed(2) : num.toLocaleString();
+        }
+
+        function fetchData() {
+            fetch("/data")
+                .then(res => res.json())
+                .then(rows => {
+                    let table = document.getElementById("chain-body");
+                    
+                    if (rows.length === 0) {
+                        table.innerHTML = `<tr><td colspan="21" style="text-align:center; padding: 20px;">
+                            Loading data for ${currentSymbol} on ${currentExpiry}...
+                        </td></tr>`;
+                        return;
+                    }
+
+                    table.innerHTML = "";
+
+                    rows.forEach(r => {
+                        let tr = document.createElement("tr");
+                        let ceChgClass = r.ce_chg < 0 ? "neg" : (r.ce_chg > 0 ? "pos" : "");
+                        let peChgClass = r.pe_chg < 0 ? "neg" : (r.pe_chg > 0 ? "pos" : "");
+
+                        tr.innerHTML = `
+                            <td class="bg-call">${fmt(r.ce_oi, false)}</td>
+                            <td class="bg-call">${fmt(r.ce_chg_oi, false)}</td>
+                            <td class="bg-call">${fmt(r.ce_volume, false)}</td>
+                            <td class="bg-call">${fmt(r.ce_iv)}</td>
+                            <td class="bg-call"><b>${fmt(r.ce_ltp)}</b></td>
+                            <td class="bg-call ${ceChgClass}">${fmt(r.ce_chg)}</td>
+                            <td class="bg-call">${fmt(r.ce_bid_qty, false)}</td>
+                            <td class="bg-call">${fmt(r.ce_bid)}</td>
+                            <td class="bg-call">${fmt(r.ce_ask)}</td>
+                            <td class="bg-call">${fmt(r.ce_ask_qty, false)}</td>
+                            <td class="strike-col">${fmt(r.strike)}</td>
+                            <td>${fmt(r.pe_bid_qty, false)}</td>
+                            <td>${fmt(r.pe_bid)}</td>
+                            <td>${fmt(r.pe_ask)}</td>
+                            <td>${fmt(r.pe_ask_qty, false)}</td>
+                            <td class="${peChgClass}">${fmt(r.pe_chg)}</td>
+                            <td><b>${fmt(r.pe_ltp)}</b></td>
+                            <td>${fmt(r.pe_iv)}</td>
+                            <td>${fmt(r.pe_volume, false)}</td>
+                            <td>${fmt(r.pe_chg_oi, false)}</td>
+                            <td>${fmt(r.pe_oi, false)}</td>
+                        `;
+                        table.appendChild(tr);
+                    });
+                });
+        }
+
+        function updateClock() {
+            const now = new Date();
+            const options = { 
+                day: '2-digit', month: 'short', year: 'numeric', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit' 
+            };
+            document.getElementById("live-clock").innerText = now.toLocaleString('en-GB', options).replace(',', '');
+        }
+
+        function updateConfig() {
+            const newSymbol = document.getElementById('symbol-input').value.toUpperCase().trim();
+            const newExpiry = document.getElementById('expiry-input').value.trim();
+
+            if (!newSymbol || !newExpiry) {
+                // Use a modal or a div instead of alert in a real app
+                alert('Please enter both a Stock Symbol and an Expiry Date (DD-MM-YYYY).');
+                return;
+            }
+            
+            // Prevent unnecessary API call if config hasn't changed
+            if (newSymbol === currentSymbol && newExpiry === currentExpiry) {
+                console.log("Configuration unchanged.");
+                return;
+            }
+
+            // 1. Update local state and UI immediately for feedback
+            currentSymbol = newSymbol;
+            currentExpiry = newExpiry;
+            document.getElementById('display-symbol').textContent = currentSymbol;
+            document.getElementById('display-expiry').textContent = currentExpiry;
+            document.getElementById("chain-body").innerHTML = '<tr><td colspan="21" style="text-align:center; padding: 20px;">Attempting to start new stream...</td></tr>';
+            
+            // 2. Call the Flask backend to restart the stream
+            fetch('/update_config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ symbol: newSymbol, expiry: newExpiry })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('Server response failed.');
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log(data.message);
+                if (data.status !== 'success') {
+                    alert('Error from server: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Network or config error:', error);
+                alert('Failed to update configuration. Check console or API connectivity.');
+            });
+        }
+
+        window.onload = function() {
+            // Set initial input values based on Flask variables
+            document.getElementById('symbol-input').value = currentSymbol;
+            document.getElementById('expiry-input').value = currentExpiry;
+            
+            // Start the fetching loop
+            fetchData();
+            setInterval(fetchData, 1000);
+            
+            // Start the clock
+            updateClock();
+            setInterval(updateClock, 1000);
+        };
+    </script>
+</head>
+
+<body>
+
+<!-- NEW CONTROL PANEL -->
+<div class="control-panel">
+    <label for="symbol-input">Stock Symbol:</label>
+    <input type="text" id="symbol-input" placeholder="e.g., RELIANCE" maxlength="10">
+
+    <label for="expiry-input">Expiry (DD-MM-YYYY):</label>
+    <input type="text" id="expiry-input" placeholder="e.g., 25-11-2025" maxlength="10">
+    
+    <button onclick="updateConfig()">Update Stream</button>
+</div>
+
+<!-- INFO HEADER BAR - Updated with IDs -->
+<div class="header-info">
+    <span>
+        <span class="label">Underlying:</span>
+        <span class="value" id="display-symbol">{{ stock_name }}</span>
+    </span>
+
+    <span>
+        <span class="label">As on:</span>
+        <span class="value" id="live-clock">Loading...</span>
+    </span>
+
+    <span>
+        <span class="label">Expiry Date:</span>
+        <span class="value" id="display-expiry">{{ expiry }}</span>
+    </span>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th class="calls-header" colspan="10">CALLS</th>
+                <th class="strike-header">Strike</th>
+                <th class="puts-header" colspan="10">PUTS</th>
+            </tr>
+            <tr>
+                <th>OI</th> <th>Chg OI</th> <th>Vol</th> <th>IV</th> <th>LTP</th> <th>Chng</th> <th>Bid Qty</th> <th>Bid</th> <th>Ask</th> <th>Ask Qty</th>
+                <th>Strike</th>
+                <th>Bid Qty</th> <th>Bid</th> <th>Ask</th> <th>Ask Qty</th> <th>Chng</th> <th>LTP</th> <th>IV</th> <th>Vol</th> <th>Chg OI</th> <th>OI</th>
+            </tr>
+        </thead>
+        <tbody id="chain-body"></tbody>
+    </table>
+</div>
+
+</body>
+</html>

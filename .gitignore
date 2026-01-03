@@ -1,5 +1,5 @@
 access_token.txt
-config.py
 pycache/
 *.pyc
 venv/
+.env

@@ -3,3 +3,4 @@ express-option-chain
 kiteconnect
 pandas
 flask
+python-dotenv

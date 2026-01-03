@@ -1,17 +1,17 @@
 import time
 import threading
 import os
-import config
+from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request, redirect, url_for
 from kiteconnect import KiteConnect
 from expressoptionchain.option_stream import OptionStream
 from expressoptionchain.option_chain import OptionChainFetcher
 
 app = Flask(__name__)
+load_dotenv()
 
-# --- CONFIG ---
-API_KEY = config.API_KEY     
-API_SECRET = config.API_SECRET
+API_KEY = os.getenv("API_KEY")     
+API_SECRET = os.getenv("API_SECRET")
 EXPIRY = "25-11-2025"
 STOCK_SYMBOL = "HDFCBANK"           
 TOKEN_FILE = "access_token.txt"     
@@ -19,12 +19,11 @@ TOKEN_FILE = "access_token.txt"
 kite = KiteConnect(api_key=API_KEY)
 access_token = None
 latest_chain = []
+
 stream_thread_started = False
-# References for active threads
 option_stream_instance = None
 chain_updater_thread = None
 
-# --- DATA HELPERS ---
 def get_val(data, key):
     if data is None: return 0
     if isinstance(data, list):
@@ -66,9 +65,8 @@ def format_chain_for_strikes(expiry_data):
     return formatted_chain
 
 # --- THREAD CONTROL ---
-
 def stop_stream_service():
-    """Stops existing stream and updater threads gracefully."""
+    """Stops existing stream and updater threads"""
     global stream_thread_started, option_stream_instance, latest_chain
     
     # stop updater thread
@@ -82,7 +80,7 @@ def stop_stream_service():
 
 def chain_updater():
     """
-    Background task to fetch option chain data, controlled by a flag.
+    Background task to fetch option chain data
     """
     global latest_chain, stream_thread_started, STOCK_SYMBOL, EXPIRY
     print(f">>> Chain Updater Active for {STOCK_SYMBOL} ({EXPIRY})")
@@ -148,8 +146,7 @@ def get_valid_token_from_file():
             
             # Temporarily set token to check validity
             kite.set_access_token(token)
-            
-            # Attempt a API call to validate session
+        
             kite.profile()
             
             print(">>> Token loaded from file and successfully validated.")
@@ -178,15 +175,8 @@ def home():
     if access_token:
         return render_template("index.html", stock_name=STOCK_SYMBOL, expiry=EXPIRY)
     
-    # Login Page (shown if access_token is None)
-    return '''
-        <div style="display:flex; flex-direction:column; height:100vh; justify-content:center; align-items:center; font-family:sans-serif; background:#f4f4f4;">
-            <h2>Option Chain Login</h2>
-            <a href="/login" style="padding:15px 30px; background:#ff5722; color:white; text-decoration:none; border-radius:5px; font-size:18px; font-weight:bold;">
-                Login with Zerodha
-            </a>
-        </div>
-    '''
+    # Login Page (if access_token is None)
+    return render_template("login.html")
 
 @app.route("/login")
 def login():
@@ -236,12 +226,11 @@ def update_config():
 
 
 if __name__ == "__main__":
-    # Startup Check: Validate token
+    #Validate token
     valid_token = get_valid_token_from_file()
     
     if valid_token:
         access_token = valid_token
-        # Token is valid
         start_stream_service(access_token) 
     else:
         print(">>> No valid saved token found. Waiting for user login.")

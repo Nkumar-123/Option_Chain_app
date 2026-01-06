@@ -57,12 +57,6 @@ A small Flask web app that:
 
 ### 1) Create and activate a virtual environment
 
-**Windows (PowerShell):**
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-```
-
 **Linux/macOS:**
 ```bash
 python -m venv .venv
@@ -240,7 +234,3 @@ __pycache__/
 ```
 
 ---
-
-## Disclaimer
-
-This project is for educational/demo purposes. Trading involves risk. Use responsibly and follow Zerodha’s API terms.

@@ -11,7 +11,7 @@
             font-size: 12px;
         }
 
-        /* --- CONTROL PANEL --- */
+        /* CONTROL PANEL*/
         .control-panel {
             margin-bottom: 20px;
             padding: 10px;
@@ -47,7 +47,7 @@
             background: #2980b9;
         }
 
-        /* --- HEADER INFO STYLE --- */
+        /* HEADER INFO STYLE */
         .header-info {
             display: flex;
             align-items: center;
@@ -69,7 +69,7 @@
             margin-left: 5px;
         }
 
-        /* --- TABLE STYLE (unchanged) --- */
+        /* TABLE STYLE  */
         .table-container {
             width: 100%;
             overflow-x: auto;
@@ -167,12 +167,11 @@
             const newExpiry = document.getElementById('expiry-input').value.trim();
 
             if (!newSymbol || !newExpiry) {
-                // Use a modal or a div instead of alert in a real app
+
                 alert('Please enter both a Stock Symbol and an Expiry Date (DD-MM-YYYY).');
                 return;
             }
             
-            // Prevent unnecessary API call if config hasn't changed
             if (newSymbol === currentSymbol && newExpiry === currentExpiry) {
                 console.log("Configuration unchanged.");
                 return;
@@ -214,11 +213,9 @@
             document.getElementById('symbol-input').value = currentSymbol;
             document.getElementById('expiry-input').value = currentExpiry;
             
-            // Start the fetching loop
             fetchData();
             setInterval(fetchData, 1000);
-            
-            // Start the clock
+        
             updateClock();
             setInterval(updateClock, 1000);
         };
@@ -227,7 +224,7 @@
 
 <body>
 
-<!-- NEW CONTROL PANEL -->
+
 <div class="control-panel">
     <label for="symbol-input">Stock Symbol:</label>
     <input type="text" id="symbol-input" placeholder="e.g., RELIANCE" maxlength="10">
@@ -238,7 +235,6 @@
     <button onclick="updateConfig()">Update Stream</button>
 </div>
 
-<!-- INFO HEADER BAR - Updated with IDs -->
 <div class="header-info">
     <span>
         <span class="label">Underlying:</span>

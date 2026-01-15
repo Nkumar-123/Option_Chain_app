@@ -25,14 +25,14 @@ A small Flask web app that:
 
 ---
 
-## Project Structure (expected)
+## Project Structure
 
 ```
 .
-├── app.py                       # your Flask code
+├── src/                      
 ├── templates/
 │   ├── login.html               # login page
-│   └── index.html               # dashboard page (polls /data)
+│   └── index.html               # dashboard page
 ├── .env                         # API_KEY, API_SECRET
 ├── requirements.txt
 └── access_token.txt             # created automatically after first login
